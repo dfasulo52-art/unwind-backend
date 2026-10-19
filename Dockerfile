@@ -6,7 +6,10 @@ WORKDIR /app
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
 
-# Scarica le dipendenze (questo sfrutta la cache di Docker)
+# Assicura che il maven wrapper abbia i permessi di esecuzione (Risolve l'exit code 126)
+RUN chmod +x mvnw
+
+# Scarica le dipendenze
 RUN ./mvnw dependency:go-offline -B
 
 # Copia il resto del codice sorgente e compila
