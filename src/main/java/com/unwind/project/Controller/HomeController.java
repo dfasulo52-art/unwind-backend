@@ -1,4 +1,4 @@
-package com.unwind.backend.controller; // Sostituisci con il tuo package effettivo
+package com.unwind.project.Controller; // Sostituisci con il tuo package effettivo
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
