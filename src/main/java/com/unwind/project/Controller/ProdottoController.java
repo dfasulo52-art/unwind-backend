@@ -74,17 +74,23 @@ public class ProdottoController {
         prodotto.setId(id);
 
         try {
+            // Recupera il prodotto esistente per gestire la vecchia foto
+            Prodotto prodottoEsistente = prodottoRepository.findById(id).orElse(null);
+
             if (foto != null && !foto.isEmpty()) {
-                // Carica la nuova immagine su Supabase Storage e aggiorna l'URL
+                // 1. Carica la nuova immagine su Supabase Storage
                 String fileUrl = supabaseStorageService.uploadImage(foto);
                 prodotto.setFoto(fileUrl);
+
+                // 2. Se c'era una vecchia foto su Supabase, eliminala per pulizia
+                if (prodottoEsistente != null && prodottoEsistente.getFoto() != null) {
+                    supabaseStorageService.deleteImage(prodottoEsistente.getFoto());
+                }
             } else {
-                // Se non viene caricata una nuova foto, manteniamo quella esistente recuperandola dal DB
-                prodottoRepository.findById(id).ifPresent(pEsistente -> {
-                    if (prodotto.getFoto() == null) {
-                        prodotto.setFoto(pEsistente.getFoto());
-                    }
-                });
+                // Se non viene caricata una nuova foto, manteniamo quella esistente
+                if (prodottoEsistente != null && prodotto.getFoto() == null) {
+                    prodotto.setFoto(prodottoEsistente.getFoto());
+                }
             }
             
             Prodotto prodottoAggiornato = prodottoRepository.save(prodotto);
@@ -96,13 +102,21 @@ public class ProdottoController {
         }
     }
 
-    // 4. METODO DELETE: Elimina il prodotto corrispondente all'ID ricevuto da Angular
+    // 4. METODO DELETE: Elimina il prodotto e cancella la relativa foto da Supabase Storage
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminaProdotto(@PathVariable Long id) {
-        if (!prodottoRepository.existsById(id)) {
+        Prodotto prodotto = prodottoRepository.findById(id).orElse(null);
+        
+        if (prodotto == null) {
             return ResponseEntity.notFound().build();
         }
         
+        // 1. Se il prodotto ha una foto associata, eliminala dal bucket di Supabase
+        if (prodotto.getFoto() != null && !prodotto.getFoto().isEmpty()) {
+            supabaseStorageService.deleteImage(prodotto.getFoto());
+        }
+        
+        // 2. Elimina il record dal database
         prodottoRepository.deleteById(id);
         return ResponseEntity.ok().build();
     }

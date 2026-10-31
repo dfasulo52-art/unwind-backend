@@ -55,4 +55,34 @@ public class SupabaseStorageService {
             throw new RuntimeException("Errore durante l'upload dell'immagine su Supabase Storage");
         }
     }
+
+    /**
+     * Elimina un'immagine dal bucket di Supabase Storage partendo dal suo URL pubblico.
+     */
+    public void deleteImage(String fileUrl) {
+        if (fileUrl == null || fileUrl.isEmpty()) {
+            return;
+        }
+        
+        try {
+            // Estrae il nome del file dall'URL pubblico di Supabase
+            String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+            
+            // URL delle API REST di Supabase Storage per eliminare l'oggetto
+            String deleteUrl = supabaseUrl + "/storage/v1/object/" + bucketName + "/" + fileName;
+
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("apikey", supabaseKey);
+            headers.set("Authorization", "Bearer " + supabaseKey);
+
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            
+            // Invia la richiesta DELETE a Supabase
+            restTemplate.exchange(deleteUrl, HttpMethod.DELETE, requestEntity, String.class);
+        } catch (Exception e) {
+            // Logga l'errore senza bloccare l'esecuzione della cancellazione del prodotto nel database
+            System.err.println("Impossibile eliminare l'immagine da Supabase: " + e.getMessage());
+        }
+    }
 }
