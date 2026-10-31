@@ -30,10 +30,18 @@ public class SupabaseStorageService {
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
+        
         // Aggiungiamo sia l'header 'apikey' che 'Authorization' richiesti dalle nuove chiavi Supabase
         headers.set("apikey", supabaseKey);
         headers.set("Authorization", "Bearer " + supabaseKey);
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        
+        // Imposta dinamicamente il Content-Type reale del file (es. image/jpeg, image/png)
+        String contentType = file.getContentType();
+        if (contentType != null && !contentType.isEmpty()) {
+            headers.setContentType(MediaType.parseMediaType(contentType));
+        } else {
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        }
 
         HttpEntity<byte[]> requestEntity = new HttpEntity<>(file.getBytes(), headers);
 
