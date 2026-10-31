@@ -30,7 +30,8 @@ public class SupabaseStorageService {
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        // Utilizziamo la Secret Key per autorizzare il caricamento lato server
+        // Aggiungiamo sia l'header 'apikey' che 'Authorization' richiesti dalle nuove chiavi Supabase
+        headers.set("apikey", supabaseKey);
         headers.set("Authorization", "Bearer " + supabaseKey);
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
