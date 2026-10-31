@@ -1,12 +1,7 @@
 package com.unwind.project.Controller;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -24,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.unwind.project.Model.Prodotto;
 import com.unwind.project.Repository.ProdottoRepository;
+import com.unwind.project.Service.SupabaseStorageService; // Assicurati che il package corrisponda
 
 @RestController
 @RequestMapping("/api/prodotti")
@@ -33,13 +29,16 @@ public class ProdottoController {
     @Autowired
     private ProdottoRepository prodottoRepository;
 
+    @Autowired
+    private SupabaseStorageService supabaseStorageService;
+
     // 1. METODO GET: Restituisce la lista di tutti i prodotti al frontend (fondamentale per mostrarli)
     @GetMapping
     public List<Prodotto> getTuttiIProdotti() {
         return prodottoRepository.findAll();
     }
 
-    // 2. METODO POST: Crea un nuovo prodotto con eventuale foto
+    // 2. METODO POST: Crea un nuovo prodotto con eventuale foto su Supabase Storage
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Prodotto> creaProdotto(
             @RequestPart("prodotto") Prodotto prodotto,
@@ -47,12 +46,9 @@ public class ProdottoController {
 
         try {
             if (foto != null && !foto.isEmpty()) {
-                String nomeFile = UUID.randomUUID().toString() + "_" + foto.getOriginalFilename();
-                Path percorsoGettato = Paths.get("uploads/" + nomeFile);
-                Files.createDirectories(percorsoGettato.getParent());
-                Files.copy(foto.getInputStream(), percorsoGettato, StandardCopyOption.REPLACE_EXISTING);
-                
-                prodotto.setFoto(nomeFile);
+                // Carica l'immagine su Supabase Storage e ottiene l'URL pubblico completo
+                String fileUrl = supabaseStorageService.uploadImage(foto);
+                prodotto.setFoto(fileUrl);
             }
 
             Prodotto nuovoProdotto = prodottoRepository.save(prodotto);
@@ -79,12 +75,16 @@ public class ProdottoController {
 
         try {
             if (foto != null && !foto.isEmpty()) {
-                String nomeFile = UUID.randomUUID().toString() + "_" + foto.getOriginalFilename();
-                Path percorsoGettato = Paths.get("uploads/" + nomeFile);
-                Files.createDirectories(percorsoGettato.getParent());
-                Files.copy(foto.getInputStream(), percorsoGettato, StandardCopyOption.REPLACE_EXISTING);
-                
-                prodotto.setFoto(nomeFile);
+                // Carica la nuova immagine su Supabase Storage e aggiorna l'URL
+                String fileUrl = supabaseStorageService.uploadImage(foto);
+                prodotto.setFoto(fileUrl);
+            } else {
+                // Se non viene caricata una nuova foto, manteniamo quella esistente recuperandola dal DB
+                prodottoRepository.findById(id).ifPresent(pEsistente -> {
+                    if (prodotto.getFoto() == null) {
+                        prodotto.setFoto(pEsistente.getFoto());
+                    }
+                });
             }
             
             Prodotto prodottoAggiornato = prodottoRepository.save(prodotto);
